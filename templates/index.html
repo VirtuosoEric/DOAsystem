@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Sensor Polling</title>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script>
+    $(document).ready(function(){
+      function fetchSensorData(){
+        $.ajax({
+          url: "/update",
+          method: "GET",
+          dataType: "json",
+          success: function(response){
+            $('#sensor').text(response.data);
+          },
+          error: function(error){
+            console.error("Error fetching sensor data:", error);
+          }
+        });
+      }
+      // Poll the server every 500 milliseconds
+      setInterval(fetchSensorData, 500);
+    });
+  </script>
+</head>
+<body>
+  <h1>Real-Time Sensor Data (Polling)</h1>
+  <div id="sensor">Loading sensor data...</div>
+</body>
+</html>

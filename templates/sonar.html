@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Responsive Sonar with Smooth Direction Transition</title>
+  <style>
+    /* Reset and responsive styles */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      background-color: #000;
+      color: #fff;
+      font-family: Arial, sans-serif;
+      overflow: hidden;
+    }
+    canvas {
+      display: block;
+      background-color: #000;
+    }
+    #controls {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 10;
+      background: rgba(0, 0, 0, 0.5);
+      padding: 10px 20px;
+      border-radius: 5px;
+    }
+    input[type="number"] {
+      padding: 5px;
+      width: 70px;
+      margin-right: 10px;
+    }
+    button {
+      padding: 5px 10px;
+      cursor: pointer;
+    }
+  </style>
+  <!-- Include jQuery for AJAX polling -->
+  <!-- <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script> -->
+  <script src="{{ url_for('static', filename='js/jquery-3.6.0.min.js') }}"></script>
+
+</head>
+<body>
+  <div id="controls">
+    <label for="angleInput">Direction (degrees): </label>
+    <input type="number" id="angleInput" min="0" max="360" value="0">
+    <button onclick="updateDirection()">Update</button>
+    <div id="sensor-display" style="margin-top: 10px;">Sensor Value: Loading...</div>
+  </div>
+  <canvas id="sonarCanvas"></canvas>
+
+  <script>
+    const canvas = document.getElementById('sonarCanvas');
+    const ctx = canvas.getContext('2d');
+    // Current displayed angle and target angle
+    let currentDegree = 0;
+    let targetDegree = 0;
+    let pulse = 0;
+
+    // Resize the canvas to fill the window
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+
+    // Normalize the angle to the range [0, 360)
+    function normalizeAngle(angle) {
+      return (angle % 360 + 360) % 360;
+    }
+
+    // Smoothly interpolate between the current and target angle
+    function smoothTransition() {
+      let diff = targetDegree - currentDegree;
+      if (diff > 180) diff -= 360;
+      if (diff < -180) diff += 360;
+      currentDegree += diff * 0.1;
+      currentDegree = normalizeAngle(currentDegree);
+    }
+
+    // Draw the sonar circle and degree scale
+    function drawSonar() {
+      const cw = canvas.width;
+      const ch = canvas.height;
+      const centerX = cw / 2;
+      const centerY = ch / 2;
+      const radius = Math.min(cw, ch) * 0.45;
+      ctx.clearRect(0, 0, cw, ch);
+
+      // Draw sonar circle
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+      ctx.strokeStyle = '#00ff00';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // Calculate font size relative to the sonar circle radius
+      const fontSize = Math.floor(radius * 0.08);
+      ctx.font = `${fontSize}px Arial`;
+      ctx.fillStyle = '#00ff00';
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      const offset = 25;
+      // Draw degree tick marks and labels every 30 degrees
+      for (let angle = 0; angle < 360; angle += 30) {
+        const rad = (angle - 90) * Math.PI / 180;
+        const xOuter = centerX + radius * Math.cos(rad);
+        const yOuter = centerY + radius * Math.sin(rad);
+        const xInner = centerX + (radius - 10) * Math.cos(rad);
+        const yInner = centerY + (radius - 10) * Math.sin(rad);
+        ctx.beginPath();
+        ctx.moveTo(xOuter, yOuter);
+        ctx.lineTo(xInner, yInner);
+        ctx.strokeStyle = '#00ff00';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        const xText = centerX + (radius + offset) * Math.cos(rad);
+        const yText = centerY + (radius + offset) * Math.sin(rad);
+        ctx.fillText(angle.toString(), xText, yText);
+      }
+      return { centerX, centerY, radius };
+    }
+
+    // Draw a 30° sector with a pulsating effect indicating the current direction
+    function drawSector(centerX, centerY, radius, degree, alpha) {
+      const startAngle = (degree - 15 - 90) * Math.PI / 180;
+      const endAngle = (degree + 15 - 90) * Math.PI / 180;
+      const gradient = ctx.createRadialGradient(centerX, centerY, radius * 0.3, centerX, centerY, radius);
+      gradient.addColorStop(0, `rgba(255, 255, 0, ${alpha})`);
+      gradient.addColorStop(1, 'rgba(255, 255, 0, 0)');
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.shadowBlur = 20;
+      ctx.shadowColor = 'rgba(255, 255, 0, 0.8)';
+      ctx.beginPath();
+      ctx.moveTo(centerX, centerY);
+      ctx.arc(centerX, centerY, radius, startAngle, endAngle, false);
+      ctx.closePath();
+      ctx.fillStyle = gradient;
+      ctx.fill();
+      ctx.restore();
+    }
+
+    // Animation loop for smooth transition and pulsating effect
+    function animate() {
+      pulse += 0.05;
+      smoothTransition();
+      const alpha = 0.5 + 0.5 * Math.abs(Math.sin(pulse));
+      const { centerX, centerY, radius } = drawSonar();
+      drawSector(centerX, centerY, radius, currentDegree, alpha);
+      requestAnimationFrame(animate);
+    }
+
+    // Manual update from the input field (optional)
+    function updateDirection() {
+      const inputVal = parseFloat(document.getElementById('angleInput').value);
+      if (!isNaN(inputVal)) {
+        targetDegree = normalizeAngle(inputVal);
+      }
+    }
+
+    // Poll the sensor value from the server and update the target degree
+    function fetchSensorData(){
+      $.ajax({
+        url: "/update",
+        method: "GET",
+        dataType: "json",
+        success: function(response){
+          // Assume the sensor value is in degrees
+          targetDegree = normalizeAngle(parseFloat(response.data));
+          // Update the displayed sensor value
+          $('#sensor-display').text("Sensor Value: " + response.data);
+        },
+        error: function(error){
+          console.error("Error fetching sensor data:", error);
+        }
+      });
+    }
+
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+    animate();
+    // Poll sensor data every 500 milliseconds
+    setInterval(fetchSensorData, 500);
+  </script>
+</body>
+</html>
