@@ -17,7 +17,7 @@ else:
 
 @app.route('/')
 def index():
-    return render_template('sonar.html')
+    return render_template('sonar_counter_clockwise.html')
 
 @app.route('/update')
 def update():
