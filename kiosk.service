@@ -1,0 +1,15 @@
+[Unit]
+Description=Start Web Server and Launch Chromium in Kiosk Mode
+After=network.target graphical.target
+Wants=graphical.target
+
+[Service]
+User=raspberry
+Environment=DISPLAY=:0
+Environment=XAUTHORITY=/home/raspberry/.Xauthority
+ExecStart=/usr/local/bin/start_DOA.sh
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=graphical.target

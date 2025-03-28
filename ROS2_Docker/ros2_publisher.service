@@ -1,0 +1,16 @@
+[Unit]
+Description=ROS2 Publisher Container Service
+After=docker.service
+Requires=docker.service
+
+[Service]
+Restart=always
+# Run the container in detached mode; adjust the image name if needed.
+ExecStart=/usr/bin/docker run -d --name ros2_publisher --net=host --privileged ros2-humble
+# Stop the container gracefully when the service is stopped.
+ExecStop=/usr/bin/docker stop ros2_publisher
+# Optionally remove the container after it stops.
+ExecStopPost=/usr/bin/docker rm ros2_publisher
+
+[Install]
+WantedBy=multi-user.target
