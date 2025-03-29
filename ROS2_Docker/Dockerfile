@@ -4,6 +4,9 @@ FROM ros:humble-ros-base
 # Set the working directory in the container.
 WORKDIR /workspace
 
+# Optional: Set environment variables (e.g., for ROS_DOMAIN_ID if needed)
+ENV ROS_DOMAIN_ID=0
+
 # Copy the publisher script from the host into the container.
 COPY ./app/publisher.py /workspace/publisher.py
 

@@ -6,7 +6,7 @@ Requires=docker.service
 [Service]
 Restart=always
 # Run the container in detached mode; adjust the image name if needed.
-ExecStart=/usr/bin/docker run -d --name ros2_publisher --net=host --privileged ros2-humble
+ExecStart=/usr/bin/docker run -d --name ros2_publisher --net=host --privileged ros2-publisher
 # Stop the container gracefully when the service is stopped.
 ExecStop=/usr/bin/docker stop ros2_publisher
 # Optionally remove the container after it stops.
